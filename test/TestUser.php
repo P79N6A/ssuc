@@ -14,26 +14,10 @@ class TestUser extends \PHPUnit\Framework\TestCase
 {
     // 待测试的用户id
     public $uids = [
-        '3137174017',
-        '6808055814',
-        '2118803707',
-        '1265539540',
-        '6809080397',
-        '5467955978',
-        '5679146080',
-        '6808003129',
     ];
 
     // 待测试的用户sid
     public $sids = [
-        '240124406428013520',
-        '240127949686442656',
-        '240145925325553504',
-        '240161329468311072',
-        '240177859744014336',
-        '240173109191391424',
-        '240163408325476192',
-        '240560690136973152',
     ];
     public function testGetByUids() {
         $uids = $this->uids;
@@ -56,19 +40,16 @@ class TestUser extends \PHPUnit\Framework\TestCase
     }
 
     public function testIsLogin() {
-        $_COOKIE['SUB'] = '_2AyGFTM4VlHO1f-QWj28Yv0Q-yLKE_jvMVu4b6VnN2J13Y-WXlZJwAWiQyDS0XI1mq3yFc2IPPRObzq02ygLOv9p4';
-        $_COOKIE['sso_domain'] = '.sports.sina.cn';
+        // TODO 请添加登录信息
         $result = User::isLogin();
 
         $this->assertNotEmpty($result);
         $this->assertArrayHasKey('uid', $result);
 
-        // $_COOKIE['SUB'] = '_2AyGFTz1HlHM1f-QYj2oZvk08z76E_jvMVv1J6VnN2J13Z-WXlZNHAWiQz6oNvVYMTlN9o2yMfA6t-G250zZvbyUP';
-        // $_COOKIE['sso_domain'] = '.sports.sina.cn';
-        // $result = User::isLogin();
+        $result = User::isLogin();
 
-        // $this->assertNotEmpty($result);
-        // $this->assertArrayHasKey('uid', $result);
+        $this->assertNotEmpty($result);
+        $this->assertArrayHasKey('uid', $result);
     }
 
     public function testGetBySid() {

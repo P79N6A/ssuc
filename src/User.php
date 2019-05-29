@@ -11,6 +11,8 @@ namespace Daisy\SSUC;
 
 class User 
 {
+    const API_IS_LOGIN = 'http://debut.sports.sina.com.cn/uc/api/intra/islogin';
+
     const API_FETCH_USER = 'http://debut.sports.sina.com.cn/uc/api/intra/get_by_uid';
 
     const API_FETCH_USERS = 'http://debut.sports.sina.com.cn/uc/api/intra/get_by_uids';
@@ -19,12 +21,10 @@ class User
 
     const API_FETCH_USER_SIDS = 'http://debut.sports.sina.com.cn/uc/api/intra/get_by_sids';
 
-    const SSO_DOMAIN = '.sina.com.cn';
-
     /**
      * 验证用户是否登录, 未登录/未找到用户信息返回false, 登录返回用户信息, 登录用户的票据需要放到$_COOKIE['SUB']中,
-     * 默认票据有效域为.sina.com.cn;.sina.cn;.weibo.cn;.weibo.com, 如果使用的是其它域请在$_COOKIE['sso_domain']中指定:
-     * 例 $_COOKIE['sso_domain']='.sports.sina.com.cn'
+     * 默认票据有效域为 .sports.sina.com.cn 如果使用的是其它域请在$_COOKIE['sso_domain']中指定:
+     * 例 $_COOKIE['sso_domain']='.sina.com.cn;'
      *
      * return false | array
      * throw Exception
@@ -32,42 +32,24 @@ class User
      */
     public static function islogin() {
         Tool::checkEnv();
-        if (false === (@include_once 'sso/sdk/client/0.6.20/client.php')) {
-            throw new \BaseModelException('[ssuc::islogin]无法引入sso_sdk');
-        }
-        if(! class_exists('Sso_Sdk_Config', false)) {
-            throw new \BaseModelException('[ssuc:islogin]无法引入sso_sdk');
-        }
-        if (! defined('SINA_SSO_ENTRY') || ! defined('SINA_SSO_PIN')) {
-            throw new \BaseModelException('缺少sso_entry或sso_pin');
+        if (! isset($_COOKIE['SUB']) || empty($_COOKIE['SUB'])) {
+            return false;
         }
 
-        $config = [
-            'entry'                 => SINA_SSO_ENTRY,
-            'service'               => SINA_SSO_PIN,
-            'pin'                   => SINA_SSO_PIN,
-            'domain'                => self::SSO_DOMAIN,
-            'autologin'             => false,
-            'check_domain'          => false,
-            'ignore_verify_flag'    => array('all'),
-            ];
-        if (isset($_COOKIE['sso_domain']) && ! empty($_COOKIE['sso_domain'])) {
-            $config['domain'] = trim($_COOKIE['sso_domain']);
+        $arr = [];
+        foreach ($_COOKIE as $key => $value) {
+            array_push($arr, "{$key}={$value}");
         }
+        $cookie = implode(';', $arr);
 
-        try {
-            \Sso_Sdk_Config::set_user_config($config);
+        $result = \BaseModelHttp::get(self::API_IS_LOGIN, Tool::rheader(), 0.5, $cookie, 2);
+        $result = json_decode($result, true);
 
-            $user = \Sso_Sdk_Client::instance()->get_user();
-            if (! $user->is_status_normal()) {
-                return false;
-            }
-
-            return self::getByUid($user->get_uid());
-        } catch(Exception $e) {
-            \BaseModelCommon::debug($e->getMessage(), 'auth_error');
-            throw new \BaseModelException('[ssuc::islogin]' . $e->getMessage(), $e->getCode());
+        if (isset($result['result']['code']) && 0 !== $result['result']['code']) {
+            throw new \BaseModelException('[ssuc:getByUid]' . $result['result']['status']['msg'],
+                    $result['result']['status']['code']);
         }
+        return $result['result']['data'];
     }
 
     /**
@@ -95,7 +77,7 @@ class User
         $post = array_merge(['uid' => $uid], (array)Tool::appinfo());
         $header = Tool::rheader();
 
-        $result = \BaseModelHttp::post(self::API_FETCH_USER, $post, $header, '', 0.5, 2);
+        $result = \BaseModelHttp::post(self::API_FETCH_USER, $post, $header, 0.5, '', 2);
         $result = json_decode($result, true);
 
         if (isset($result['result']['code']) && 0 !== $result['result']['code']) {
@@ -138,7 +120,7 @@ class User
         $post = array_merge(['uids' => implode(',', $uids)], (array)Tool::appinfo());
         $header = Tool::rheader();
 
-        $result = \BaseModelHttp::post(self::API_FETCH_USERS, $post, $header, '', 0.5, 2);
+        $result = \BaseModelHttp::post(self::API_FETCH_USERS, $post, $header, 0.5, '', 2);
         $result = json_decode($result, true);
 
         if (isset($result['result']['code']) && 0 !== $result['result']['code']) {
@@ -171,7 +153,7 @@ class User
         $post = array_merge(['sid' => $sid], (array)Tool::appinfo());
         $header = Tool::rheader();
 
-        $result = \BaseModelHttp::post(self::API_FETCH_USER_SID, $post, $header, '', 0.5, 2);
+        $result = \BaseModelHttp::post(self::API_FETCH_USER_SID, $post, $header, 0.5, '', 2);
         $result = json_decode($result, true);
 
         if (isset($result['result']['code']) && 0 !== $result['result']['code']) {
@@ -206,7 +188,7 @@ class User
         $post = array_merge(['sids' => implode(',', $sids)], (array)Tool::appinfo());
         $header = Tool::rheader();
 
-        $result = \BaseModelHttp::post(self::API_FETCH_USER_SIDS, $post, $header, '', 0.5, 2);
+        $result = \BaseModelHttp::post(self::API_FETCH_USER_SIDS, $post, $header, 0.5, '', 2);
         $result = json_decode($result, true);
 
         if (isset($result['result']['code']) && 0 === $result['result']['code']) {
